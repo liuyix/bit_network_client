@@ -35,4 +35,4 @@ nosetests.xml
 .pydevproject
 
 # secret info
-.user_info
+.user_info*

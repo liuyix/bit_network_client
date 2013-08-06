@@ -11,6 +11,20 @@ var data="username="+uname+"&password="+pass2+"&drop="+drop+"&type=1&n=100";
 var con=postData("/cgi-bin/do_login", "post", data);
 
 Note: 由于目前不再区分流量，因此drop是1/0都无影响
+
+Keeplive:
+# 系统会返回一行数据
+# 76,383542,35887,17851581966,2148418034,155989,0,lyi
+# 解析
+# 上网时间 76seconds
+# 入流量 383542Bytes
+# 出流量 35887Bytes
+# 可用总流量 17851581966 Byte
+# 总流量 2148418034
+# unknown: （每次登录都不同,但是在登录期间不会改变) 155989
+# unknown: 0 (type ?教师和学生都是0)
+# username: lyi ()
+
 """
 
 import urllib2
@@ -21,10 +35,9 @@ logging.basicConfig(level=logging.DEBUG)
 POST_LOGIN_URL = "http://10.0.0.55/cgi-bin/do_login"
 POST_LOGOUT_URL = "http://10.0.0.55/cgi-bin/do_logout"
 POST_FORCE_LOGOUT_URL = "http://10.0.0.55/cgi-bin/force_logout"
-
+POST_KEEP_LIVE = "http://10.0.0.55/cgi-bin/keeplive"
 
 LOGIN_SESSIONID = ""
-
 # 若要测试，需要将个人的用户名和密码以及post数据中md5加密后的密码串放入.user_info中
 def get_user_info(filename=".user_info"):
     info_list = []
@@ -85,6 +98,24 @@ def logout(username, password, force=False):
             logging.error("SESSION ID is invalid!")
             return None
 
+def keep_alive(sessionid=None):
+    sid = sessionid
+    if sid == None and LOGIN_SESSIONID != '':
+        sid = LOGIN_SESSIONID
+    if sid != None:
+        keeplive_data = "uid=%s" % (sid)
+        response_file = do_post(POST_KEEP_LIVE, keeplive_data)        
+        for data in response_file:
+            print data
+    else:
+        logging.error("session id is not valid!")
+
+def test_keep_alive():
+    user_info = get_user_info()
+    return_data = login(user_info['username'], user_info['password'])
+    if return_data.isdigit():
+        keep_alive()
+    
 def test_force_logout():
     user_info = get_user_info()
     data = logout(user_info['username'], user_info['password'], force=True)
@@ -118,5 +149,6 @@ if __name__ == "__main__":
     #test_post_data()
     #test_login()
     #test_logout()
-    test_force_logout()
+    #test_force_logout()
+    test_keep_alive()
     
