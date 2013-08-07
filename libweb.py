@@ -32,10 +32,13 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
+LOGIN_INFO_KEYS = ["time", "in", "out", "available_data", "max_data", "unknown1", "unknown2", "username"]
+
 POST_LOGIN_URL = "http://10.0.0.55/cgi-bin/do_login"
 POST_LOGOUT_URL = "http://10.0.0.55/cgi-bin/do_logout"
 POST_FORCE_LOGOUT_URL = "http://10.0.0.55/cgi-bin/force_logout"
 POST_KEEP_LIVE = "http://10.0.0.55/cgi-bin/keeplive"
+SHOWINFO_URL = "http://10.0.0.55/user_info.php?"
 
 LOGIN_SESSIONID = ""
 # 若要测试，需要将个人的用户名和密码以及post数据中md5加密后的密码串放入.user_info中
@@ -98,18 +101,59 @@ def logout(username, password, force=False):
             logging.error("SESSION ID is invalid!")
             return None
 
+def parse_login_info(data):
+    logging.debug(data)
+    assert data != None
+    items = data.strip().split(",")
+    if len(items) == len(LOGIN_INFO_KEYS):
+        login_info = dict(zip(LOGIN_INFO_KEYS, items))
+        for k,v in login_info.iteritems():
+            print k,": ",v
+    else:
+        logging.warn("login info mismatch, [data] = [%s], length: %d", str(data), len(items))
+        print "login info mismatch"
+        for item in items:
+            print item
+    
 def keep_alive(sessionid=None):
     sid = sessionid
     if sid == None and LOGIN_SESSIONID != '':
         sid = LOGIN_SESSIONID
     if sid != None:
         keeplive_data = "uid=%s" % (sid)
-        response_file = do_post(POST_KEEP_LIVE, keeplive_data)        
+        response_file = do_post(POST_KEEP_LIVE, keeplive_data)
         for data in response_file:
             print data
+            parse_login_info(data)
+            
     else:
         logging.error("session id is not valid!")
 
+def show_userinfo(sessionid=None):
+    sid = sessionid
+    if sid == None and LOGIN_SESSIONID != '':
+        sid = LOGIN_SESSIONID
+    if sid != None:
+        uid = "uid=%s" % (sid)
+        #response_file = do_post(POST_SHOW_INFO, postdata)
+        res = urllib2.urlopen(SHOWINFO_URL + uid)
+        # 需要注意返回网页的编码 gb18030
+        for data in res:
+            print data.decode("gb18030")
+            print '---'
+            
+def test_parse_login_info():
+    test = "9149,221259023,10848348,17845117399,2187307845,169788,0,lyi"
+    parse_login_info(test)
+    test2 = "9123,1234"
+    parse_login_info(test2)
+            
+def test_show_userinfo():
+    user_info = get_user_info()
+    return_data = login(user_info['username'], user_info['password'])
+    if return_data.isdigit():
+        show_userinfo()
+            
 def test_keep_alive():
     user_info = get_user_info()
     return_data = login(user_info['username'], user_info['password'])
@@ -150,5 +194,6 @@ if __name__ == "__main__":
     #test_login()
     #test_logout()
     #test_force_logout()
-    test_keep_alive()
-    
+    #test_keep_alive()
+    #test_show_userinfo()
+    test_parse_login_info()
