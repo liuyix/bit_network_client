@@ -62,16 +62,25 @@ def get_login_data(username, passwd):
     logging.info("post_data: %s", post_data)
     return post_data
 
-def do_post(url, data):
+def do_post(url, data, timeout=5):
     assert url != None
     request = urllib2.Request(url, data, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    response_file = urllib2.urlopen(request)
-    return response_file
+    try:
+        response_file = urllib2.urlopen(request, timeout=timeout)
+    except urllib2.URLError as err:
+        print "URLError: %s" % err
+        return None
+    else:
+        return response_file
 
 def login(username, password):
     assert username != None and password != None
     data = get_login_data(username, password)
     f = do_post(POST_LOGIN_URL, data)
+    if f == None:
+        # bad things happened
+        logging.error("login failed!")
+        return None
     for response_data in f:
         print response_data
         if response_data.isdigit(): # login success
@@ -191,9 +200,9 @@ def test_login():
     
 if __name__ == "__main__":
     #test_post_data()
-    #test_login()
+    test_login()
     #test_logout()
     #test_force_logout()
     #test_keep_alive()
     #test_show_userinfo()
-    test_parse_login_info()
+    #test_parse_login_info()
